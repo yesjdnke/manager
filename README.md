@@ -5,4 +5,4 @@ A Python library to manage service files. It downloads a file, stores it in a hi
 ## Installation
 
 ```bash
-pip install my_service_manager
+pip install my_main_manager
