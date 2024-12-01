@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="my_service_manager",
-    version="1.0.7",
+    version="1.0.8",
     author="yesjdnke",
     author_email="goaway@gmail.com",
     description="A Python package for managing hidden services.",
