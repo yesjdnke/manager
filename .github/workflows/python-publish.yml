@@ -51,4 +51,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
-          password: pypi-AgEIcHlwaS5vcmcCJGQyYmI5ZDRlLTA3OTctNGE4MS1hZDYzLTc2MzdlZTVjMmJhYQACKlszLCJlYzE0NDc0OC01NjRiLTQ1NjktYTgzMi0wYTc5ZTUxYTFlZDYiXQAABiBcNlIBb2BC7T3v6XJ2Lh8QDAvb-SW1qgzru0xzuTFFpQ
