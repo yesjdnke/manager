@@ -6,13 +6,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="my_service_manager",
-    version="1.0.1",
-    author="Your Name",
-    author_email="your.email@example.com",
+    version="1.0.2",
+    author="yesjdnke",
+    author_email="goaway@gmail.com",
     description="A Python package for managing hidden services.",
     long_description=long_description,
     long_description_content_type="text/markdown",  # Use 'text/x-rst' if your README is RST
-    url="https://github.com/yourusername/my_service_manager",
+    url="https://github.com/yesjdnke/my_service_manager",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
